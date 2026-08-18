@@ -1,0 +1,15 @@
+# micromamba env create -f environment.yml
+name: projekat
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - ipykernel
+  - jupyterlab
+  - matplotlib
+  - numpy
+  - pandas
+  - pillow
+  - pip
+  - scikit-image
+  - scipy
