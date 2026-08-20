@@ -13,3 +13,11 @@ dependencies:
   - pip
   - scikit-image
   - scipy
+  - pytorch
+  - torchvision
+  - albumentations
+  - scikit-learn
+  - pip:
+      # conda-forge build simsimd (albucore zavisnost) je na arm64 prazan paket
+      # (0 fajlova) -> instaliramo ga preko pip-a da albumentations radi
+      - simsimd

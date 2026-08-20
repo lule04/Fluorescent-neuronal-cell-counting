@@ -219,3 +219,5 @@ __marimo__/
 
 # Dataset
 data/raw/
+data/prazne/*
+!data/prazne/empty_masks.txt
