@@ -221,3 +221,6 @@ __marimo__/
 data/raw/
 data/prazne/*
 !data/prazne/empty_masks.txt
+
+# Predikcije
+*.npy
