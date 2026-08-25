@@ -34,22 +34,26 @@ class CellDataset(Dataset):
        Vraća (image (3,H,W) float [0,1], mask (1,H,W) float {0,1}, image_id).
     """
 
-    def __init__(self, image_ids, form="full", augment=False):
+    def __init__(self, image_ids, form="full", augment=False, cache=True):
         self.form = form
         self.aug = _train_aug() if augment else None
         self.to_tensor = _to_tensor()
-        self._img_cache, self._mask_cache = {}, {}   # keš dekodovanih celih slika/maski
+        self._use_cache = cache
+        self._img_cache, self._mask_cache = {}, {}
         if form == "crops":
             self.samples = [(iid, ci) for iid in image_ids for ci in range(len(CROP_WINDOWS))]
         else:
             self.samples = [(iid, None) for iid in image_ids]
 
     def _load_full(self, image_id):
-        if image_id not in self._img_cache:
-            img = np.array(Image.open(config.IMG_DIR / image_id).convert("RGB"))          # uint8 HWC
-            mask = (np.array(Image.open(config.MASK_DIR / image_id)) > 0).astype(np.uint8)  # binarizacija >0 -> {0,1}
-            self._img_cache[image_id], self._mask_cache[image_id] = img, mask
-        return self._img_cache[image_id], self._mask_cache[image_id]
+        if self._use_cache and image_id in self._img_cache:
+            return self._img_cache[image_id], self._mask_cache[image_id]
+        img = np.array(Image.open(config.IMG_DIR / image_id).convert("RGB"))
+        mask = (np.array(Image.open(config.MASK_DIR / image_id)) > 0).astype(np.uint8)
+        if self._use_cache:
+            self._img_cache[image_id] = img
+            self._mask_cache[image_id] = mask
+        return img, mask
 
     def __len__(self):
         return len(self.samples)
@@ -75,11 +79,12 @@ def _read_split(split):
     return [ln.strip() for ln in path.read_text().splitlines() if ln.strip()]
 
 
-def make_dataset(split=None, image_ids=None, form="full", augment=False):
+def make_dataset(split=None, image_ids=None, form="full", augment=False, cache=True):
     """
     Vrati CellDataset. `split` čita zamrznuti fajl data/splits/{split}_image_ids.txt;
     alternativno prosledi `image_ids` listu (korisno za smoke test dok split ne postoji).
+    cache=False isključuje keširanje celih slika u RAM (za mašine sa malo memorije).
     """
     if image_ids is None:
         image_ids = _read_split(split)
-    return CellDataset(image_ids, form=form, augment=augment)
+    return CellDataset(image_ids, form=form, augment=augment, cache=cache)
