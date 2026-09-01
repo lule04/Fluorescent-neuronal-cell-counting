@@ -142,6 +142,11 @@ def evaluate(pred_masks, gt_masks, dist_thresh=DEFAULT_DIST_THRESH):
         "Precision": precision,
         "Recall": recall,
         "Accuracy": accuracy,
+        # kratki alias-i P/R/Acc — tačno kako je potpis definisan u HANDOFF.md §8
+        # ("dict(F1, MAE, MedAE, MPE, P, R, Acc)"), pored punih imena radi čitljivosti
+        "P": precision,
+        "R": recall,
+        "Acc": accuracy,
         "MAE": mae,
         "MedAE": medae,
         "MPE": mpe,
