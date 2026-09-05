@@ -1,16 +1,16 @@
 """
-Deo C — evaluacija: centroid matching (GT vs predikcija) i sve metrike.
+Evaluacija: centroid matching (GT vs predikcija) i sve metrike.
 
-Kontrakt (HANDOFF.md §8, DNEVNIK_ODLUKA "Predaja C-u"):
+Funkcija evaluate() očekuje dva recinika sa maskami:
     evaluate(pred_masks, gt_masks, dist_thresh) -> dict(F1, MAE, MedAE, MPE, P, R, Acc, ...)
 
-`pred_masks` / `gt_masks`: {image_id: 2D array (H,W)} — binarna (bool/0-1) ili već
-labeled (int, 0=pozadina, 1..N=instance) maska. Funkcija sama radi centroid
-matching preko `count_from_mask` iz `src.postprocess` ako dobije binarnu masku,
-ili direktno čita centroide preko `regionprops` ako je maska već labeled.
+Ulazne maske (`pred_masks` / `gt_masks`): {image_id: 2D array (H,W)} — mogu biti binarne
+(bool/0-1) ili već labeled (int, 0=pozadina, 1..N=instance). Funkcija automatski
+koristi `count_from_mask` iz `src.postprocess` za binarnu masku, ili direktno
+čita centroide iz `regionprops` ako je maska već labeled.
 
-Isti modul, isti prag rastojanja, korišćen za SVE modele — inače poređenje
-nije validno (DNEVNIK_ODLUKA #5 iz evaluacionog protokola u HANDOFF §4).
+Ista funkcija i isti prag rastojanja koriste se za sve modele — tako se osigurava
+fer poređenje između različitih modela.
 """
 
 import numpy as np
@@ -21,11 +21,10 @@ from skimage.measure import label, regionprops
 
 from src.postprocess import count_from_mask, _bbox_center
 
-# Prag rastojanja za centroid matching (px). Original [1] Morelli koristi 50,
-# tema-rad [Tema] Tashfeen koristi 40. Biramo 40: (a) direktno pratimo [Tema]
-# protokol koji ceo projekat replicira/proširuje, (b) red veličine se slaže sa
-# prosečnim prečnikom ćelije iz EDA (equivalent_diameter ~ 36.5 px) — "predikcija
-# je tačna ako joj je centar unutar ~jednog prečnika ćelije od GT centra".
+# Prag rastojanja za centroid matching (px): 40 piksela. Izbor je baziran na
+# prosečnom prečniku ćelije iz EDA analize (equivalent_diameter ~ 36.5 px) —
+# predikcija se smatra tačnom ako je njen centar unutar ~jednog prečnika ćelije
+# od GT centra.
 DEFAULT_DIST_THRESH = 40
 
 
@@ -33,11 +32,11 @@ def _centroids_from_mask(mask):
     """Vrati listu (row,col) centroida. Prihvata binarnu ILI već-labeled masku."""
     mask = np.asarray(mask)
     if mask.dtype == bool or set(np.unique(mask)).issubset({0, 1}):
-        # binarna maska -> pun C-ov pipeline (clean+watershed) da dobijemo instance
+        # binarna maska ->  (clean+watershed) da dobijemo instance
         _, centroids, _ = count_from_mask(mask)
         return centroids
     # već labeled (npr. instance maska iz watershed-a) -> samo pročitaj regione
-    # centar = bounding box centar (ISTA definicija kao count_from_mask, [Tema] §2, [6])
+    # centar = bounding box centar (ista definicija kao count_from_mask)
     return [_bbox_center(r) for r in regionprops(mask.astype(np.int32))]
 
 
@@ -80,13 +79,12 @@ def evaluate(pred_masks, gt_masks, dist_thresh=DEFAULT_DIST_THRESH):
     pred_masks, gt_masks: dict {image_id: 2D array}, isti ključevi (image_id).
     Vraća dict sa agregiranim metrikama + 'per_image' DataFrame (za dalju analizu/plotove).
 
-    Detekcija (F1/Precision/Recall/Accuracy): TP/FP/FN SUMIRANI preko svih slika
-    ("micro" agregacija — isto kao u [1]/[Tema]), ne prosek po slici, jer prosek
-    po slici nije definisan za slike bez GT ćelija.
+    Detekcija (F1/Precision/Recall/Accuracy): TP/FP/FN sumirani preko svih slika
+    ("micro" agregacija), ne prosek po slici, jer prosek po slici nije definisan
+    za slike bez GT ćelija.
 
     Brojanje (MAE/MedAE/MPE): po slici, pa agregirano. MPE isključuje slike sa
-    n_true=0 (deljenje nulom u formuli % greške — eksplicitno dokumentovana odluka,
-    vidi DNEVNIK_ODLUKA).
+    n_true=0 kako bi se izbeglo deljenje nulom.
     """
     image_ids = sorted(set(gt_masks) & set(pred_masks))
     missing_gt = set(pred_masks) - set(gt_masks)
@@ -142,8 +140,7 @@ def evaluate(pred_masks, gt_masks, dist_thresh=DEFAULT_DIST_THRESH):
         "Precision": precision,
         "Recall": recall,
         "Accuracy": accuracy,
-        # kratki alias-i P/R/Acc — tačno kako je potpis definisan u HANDOFF.md §8
-        # ("dict(F1, MAE, MedAE, MPE, P, R, Acc)"), pored punih imena radi čitljivosti
+        # kratki alias-i P/R/Acc pored punih imena radi čitljivosti
         "P": precision,
         "R": recall,
         "Acc": accuracy,

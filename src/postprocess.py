@@ -1,26 +1,20 @@
 """
-Deo C — post-processing: heatmap verovatnoća -> instance maska -> broj ćelija.
+Post-processing: heatmap verovatnoća -> instance maska -> broj ćelija.
 
-Pipeline (isti za GT i za predikcije, isti za sve modele — DNEVNIK_ODLUKA #8/#9/#10):
+Pipeline (isti za GT i za predikcije, isti za sve modele):
     binarizuj (>threshold, ili >0 za GT) -> ukloni objekte < MIN_OBJECT_SIZE
     -> popuni rupe -> distance transform -> lokalni maksimumi (markeri)
     -> watershed (razdvaja dodirnute/zbijene ćelije) -> connected components
     -> centroidi = koordinate ćelija.
 
-`count_from_mask()` je DELJENA funkcija (može je zvati i EDA za kanonsko,
-watershed-bazirano brojanje — vidi DNEVNIK_ODLUKA, "Predaja C-u").
+`count_from_mask()` je deljena funkcija — koristi se identično za GT i za
+predikcije, što omogućava fer poređenje.
 
-NAPOMENA (posle poređenja sa referentnim kodom [6],
-github.com/robomorelli/cell_counting_yellow, DNEVNIK_ODLUKA #21-23):
-- Centar ćelije = centar BOUNDING BOX-a (ne centroid/težište piksela) — tako
-  eksplicitno piše u [Tema] §2 ("center of the bounding box around each clump
-  of white pixels") i tako radi referentni kod (`evaluation_utils.py`,
-  `compute_metrics`). Vidi `_bbox_center` niže.
-- Watershed se OVDE primenjuje simetrično na GT i na predikcije (deljeni
-  `count_from_mask`). Referentni kod NE watershed-uje GT (samo `ndimage.label`)
-  — mi smo svesno drugačiji, po ranijoj A-inoj odluci (DNEVNIK "Predaja C-u"):
-  simetrija je fer poređenje, jer GT maske mogu sadržati stvarno dodirnute
-  ćelije koje bi prost connected-components pogrešno brojao kao jednu.
+Centar ćelije se računa kao centar bounding box-a (sredina pravougaonika oko
+ćelije). Watershed se primenjuje simetrično na GT i predikcije, što znači
+da se oba izvora obrađuju istim pipeline-om — to je važno jer GT maske mogu
+sadržavati stvarno dodirnute ćelije, a prost connected-components bi ih brojao
+kao jedan objekat.
 """
 
 import numpy as np
@@ -82,10 +76,9 @@ def watershed_instances(clean_mask, min_distance=DEFAULT_MIN_DISTANCE):
 
 def _bbox_center(region):
     """
-    Centar bounding box-a regiona (NE centroid/težište piksela) — ista definicija
-    kao [Tema] §2 i referentni kod [6] (`compute_metrics`, `ndimage.find_objects`
-    + sredina svakog slice-a). Za skoro-okrugle ćelije se poklapa sa centroidom;
-    razlika se javlja kod izduženih/nepravilnih (npr. posle watershed-a) oblika.
+    Centar bounding box-a regiona (NE centroid/težište piksela). Za skoro-okrugle
+    ćelije se poklapa sa centroidom; razlika se javlja kod izduženih/nepravilnih
+    (npr. posle watershed-a) oblika.
     """
     min_row, min_col, max_row, max_col = region.bbox
     return ((min_row + max_row) / 2, (min_col + max_col) / 2)
@@ -94,7 +87,7 @@ def _bbox_center(region):
 def count_from_mask(binary_mask, min_size=None, min_distance=DEFAULT_MIN_DISTANCE):
     """
     Kanonsko brojanje ćelija iz VEĆ BINARNE maske (GT ili predikcija posle praga).
-    Ista funkcija za GT i predikcije (fer poređenje — DNEVNIK_ODLUKA "Predaja C-u").
+    Ista funkcija za GT i predikcije osigurava fer poređenje.
 
     Vraća: (labeled_mask (int32 HxW), centroids (lista (row,col)), count (int))
     """
