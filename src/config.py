@@ -18,7 +18,7 @@ CROP_STARTS_Y = [0, 288, 688]
 # Filtriranje šuma
 MIN_OBJECT_SIZE = 90
 
-# === Deo B: trening ===
+# === Trening ===
 MODELS_DIR = ROOT / "models"
 PREDS_DIR = ROOT / "preds"
 
