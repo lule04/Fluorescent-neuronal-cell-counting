@@ -32,6 +32,3 @@ LR_FACTOR = 0.7
 
 W_POSITIVE = 1.5
 W_NEGATIVE = 0.5
-
-# Proširenje #2: frakcije train skupa za krivu podataka
-DATA_FRACTIONS = [0.25, 0.50, 0.75, 1.0]

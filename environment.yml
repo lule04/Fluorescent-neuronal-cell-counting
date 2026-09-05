@@ -1,23 +1,27 @@
-# micromamba env create -f environment.yml
 name: projekat
 channels:
   - conda-forge
 dependencies:
-  - python=3.11
+  - albumentations
+  - datasets
   - ipykernel
+  - ipywidgets
   - jupyterlab
   - matplotlib
   - numpy
   - pandas
   - pillow
   - pip
-  - scikit-image
-  - scipy
+  - python=3.11
   - pytorch
-  - torchvision
-  - albumentations
+  - scikit-image
   - scikit-learn
+  - scipy
+  - seaborn
+  - torchvision
+  - tqdm
   - pip:
-      # conda-forge build simsimd (albucore zavisnost) je na arm64 prazan paket
-      # (0 fajlova) -> instaliramo ga preko pip-a da albumentations radi
-      - simsimd
+    - simsimd==6.5.16
+    - torchtext==0.18.0
+
+prefix: "/Users/ana_velimirovic/micromamba/envs/projekat"
