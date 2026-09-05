@@ -22,6 +22,5 @@ dependencies:
   - tqdm
   - pip:
     - simsimd==6.5.16
-    - torchtext==0.18.0
 
 prefix: "/Users/ana_velimirovic/micromamba/envs/projekat"
